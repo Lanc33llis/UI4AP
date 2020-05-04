@@ -4,6 +4,8 @@
 #include <iostream>
 #include "AutoPilot.h"
 
+//wasd
+
 const auto PI = 3.141592653589793238462643383279502884L;
 
 void AP::hermite_cubic_to_power_cubic(double x1, double f1, double d1, double x2,
