@@ -152,9 +152,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AutoPilot.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="RoundedRectangle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AutoPilot.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="RoundedRectangle.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="UI4AP2.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
