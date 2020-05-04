@@ -61,6 +61,8 @@ namespace AP
 
 	Trajectory GenerateTrajectory(Spline Spline, double Jerk);
 
+	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk);
+
 	struct TankConfig
 	{
 		double Time, LeftValue, RightValue, kP, kI, kD, MaxVelocity;

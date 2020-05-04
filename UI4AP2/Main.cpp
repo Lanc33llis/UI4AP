@@ -17,7 +17,7 @@ sf::Image readCVGraph(std::string fileadress, sf::Text &timeNumber)
     cv::Mat lines = cv::Mat::zeros(cv::Size(800, 400), CV_8UC4);
 
     AP::Path myPath = { AP::Waypoint{3.75, 5.5, 180}, AP::Waypoint{3, 5.5, 180}, /*AP::Waypoint{6, 4, 80}, AP::Waypoint{6, 4, 100},*/ AP::Waypoint{6.5, 7.1, 0}, AP::Waypoint{8, 7.1, 0} };
-    AP::Trajectory myTrajectory = AP::GenerateTrajectory(AP::GenerateSpline(myPath), 2.0);
+    AP::Trajectory myTrajectory = AP::TrajectoryGeneration(myPath, 2);
 
     double xRatio, yRatio, xLength = 16.5, yLength = 8.23;
     xRatio = graph.cols / xLength; yRatio = graph.rows / yLength;
