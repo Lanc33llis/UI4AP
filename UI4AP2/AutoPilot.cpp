@@ -74,9 +74,9 @@ void AP::hermite_cubic_to_power_cubic(double x1, double f1, double d1, double x2
 
 namespace AP {
 
-	Waypoint::Waypoint(double x, double y, double a) : X(x), Y(y), Angle(a) {};
+	Waypoint::Waypoint(double x, double y, double a) : X(x), Y(y), Angle(a), typeOfFunction(types::Hermite) {};
 
-	Waypoint::Waypoint() : X(0), Y(0), Angle(0) {};
+	Waypoint::Waypoint() : X(0), Y(0), Angle(0), typeOfFunction(types::Hermite) {};
 
 	inline bool operator == (const Waypoint& lhs, const Waypoint& rhs)
 	{
@@ -146,6 +146,20 @@ namespace AP {
 		return SplineFunction{ PointOne, PointTwo, *A3, *A2, *A1, *A0 };
 	}
 
+	SplineFunction QuadraticFinder(Waypoint pointOne, Waypoint pointTwo)
+	{
+		double A0, A1 = pointOne.X, A2 = pointOne.Y, A3 = 2001;
+		A0 = (pow(pointTwo.X - (A1), 2) / (pointTwo.Y - A2));
+		return SplineFunction{ pointOne, pointTwo, A0, A1, A2, A3 };
+	}
+
+	SplineFunction SquareRootFinder(Waypoint pointOne, Waypoint pointTwo)
+	{
+		double A0, A1 = pointOne.X, A2 = pointOne.Y, A3 = 2002;
+		A0 = (sqrt(pointTwo.X - A1) / (pointTwo.Y - A2));
+		return SplineFunction{ pointOne, pointTwo, A0, A1, A2, A3 };
+	}
+
 	//Generates a spline using a path structure
 	Spline GenerateSpline(Path ThePath)
 	{
@@ -153,8 +167,16 @@ namespace AP {
 		int NumberOfFunctions = ThePath.size() - 1;
 		for (int i = 0; i < NumberOfFunctions; i++)
 		{
-			SplineFunction Temp = HermiteFinder(ThePath[i], ThePath[i + 1]);
-			ReturnSpline.push_back(Temp);
+			if (ThePath[i].typeOfFunction == Waypoint::types::Exponential)
+			{
+				SplineFunction Temp = QuadraticFinder(ThePath[i], ThePath[i]);
+				ReturnSpline.push_back(Temp);
+			}
+			else
+			{
+				SplineFunction Temp = HermiteFinder(ThePath[i], ThePath[i + 1]);
+				ReturnSpline.push_back(Temp);
+			}
 		}
 		return ReturnSpline;
 	}
@@ -213,8 +235,22 @@ namespace AP {
 	{
 		double B0, B1, B2, Time;
 		Time = TimeGivenSFJ(Function, Jerk);
-		SplineFunction XFunction = HermiteFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.X - Function.PointOne.X, Function.PointTwo.Angle });
-		SplineFunction YFunction = HermiteFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.Y - Function.PointOne.Y, Function.PointTwo.Angle });
+		SplineFunction XFunction, YFunction;
+		if (Function.PointOne.typeOfFunction == Waypoint::types::Exponential)
+		{
+			XFunction = QuadraticFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.X - Function.PointOne.X, Function.PointTwo.Angle });
+			YFunction = QuadraticFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.Y - Function.PointOne.Y, Function.PointTwo.Angle });
+		}
+		if (Function.PointOne.typeOfFunction == Waypoint::types::SquareRoot)
+		{
+			XFunction = SquareRootFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.X - Function.PointOne.X, Function.PointTwo.Angle });
+			YFunction = SquareRootFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.Y - Function.PointOne.Y, Function.PointTwo.Angle });
+		}
+		else 
+		{
+			XFunction = HermiteFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.X - Function.PointOne.X, Function.PointTwo.Angle });
+			YFunction = HermiteFinder(Waypoint{ 0, 0, Function.PointOne.Angle }, Waypoint{ Time, Function.PointTwo.Y - Function.PointOne.Y, Function.PointTwo.Angle });
+		}
 		B0 = Function.Ax; B1 = Function.Bx; B2 = Function.Cx;
 		return Segment{ Function, XFunction, YFunction, B0, B1, B2, Time };
 	}
@@ -342,8 +378,9 @@ namespace AP {
 			std::vector<Waypoint>::const_iterator iterator;
 			if ((WP1.Angle < 90 || WP1.Angle > 270) && (WP2.Angle > 90 && WP2.Angle < 270))
 			{
-				Waypoint NP1(WP1.X * 1.1, WP1.Y * 1.1, 80);
-				Waypoint NP2(WP1.X * 1.1, WP1.Y * 1.1, 100);
+
+				Waypoint NP1(WP1.X * 1.1, WP1.Y * 1.1, 60); NP1.typeOfFunction = Waypoint::types::Exponential;
+				Waypoint NP2(WP1.X * 1.1, WP1.Y * 1.1, 100); NP2.typeOfFunction = Waypoint::types::SquareRoot;
 				iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
 				int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
 				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);
@@ -351,8 +388,8 @@ namespace AP {
 			}
 			else if ((WP1.Angle > 90 && WP1.Angle < 270) && (WP2.Angle < 90 || WP2.Angle > 270))
 			{
-				Waypoint NP1(WP1.X * 1.1, WP1.Y * 1.1, 100);
-				Waypoint NP2(WP1.X * 1.1, WP1.Y * 1.1, 80);
+				Waypoint NP1(WP1.X * .9, WP1.Y * 1.1, 60); NP1.typeOfFunction = Waypoint::types::Exponential;
+				Waypoint NP2(WP1.X * .9, WP1.Y * 1.1, 100); NP2.typeOfFunction = Waypoint::types::SquareRoot;
 				iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
 				int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
 				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);

@@ -19,6 +19,11 @@ namespace AP
 	struct Waypoint
 	{
 		double X, Y, Angle;
+		enum types
+		{
+			Quadratic, SquareRoot, Hermite, Exponential
+		};
+		types typeOfFunction;
 		Waypoint(double x, double y, double angleInDegrees);
 		Waypoint();
 	};
@@ -54,6 +59,10 @@ namespace AP
 	double TimeGivenSFJ(SplineFunction TheSplineFunction, double Jerk);
 
 	SplineFunction HermiteFinder(Waypoint PointOne, Waypoint PointTwo);
+
+	SplineFunction QuadraticFinder(Waypoint pointOne, Waypoint pointTwo);
+
+	SplineFunction SquareRootFinder(Waypoint pointOne, Waypoint pointTwo);
 
 	Spline GenerateSpline(Path ThePath);
 

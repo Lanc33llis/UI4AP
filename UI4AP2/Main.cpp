@@ -38,26 +38,39 @@ sf::Image readCVGraph(std::string fileadress, sf::Text &timeNumber)
     {
         double c0 = myTrajectory[i].Function.Ax, c1 = myTrajectory[i].Function.Bx, c2 = myTrajectory[i].Function.Cx, c3 = myTrajectory[i].Function.Dx;
 
-        std::function<double(double)> cubicFunction = [c0, c1, c2, c3](double x)
+        int quad = 2001, sqrt = 2002;
+
+        std::function<double(double)> Function = [c0, c1, c2, c3, quad, sqrt](double x)
         {
+            if (c3 == quad)
+            {
+                return ((c0 * pow(x - c1, 2)) + c2);
+            }
+            else if (c3 == sqrt)
+            {
+                return ((c0 * std::sqrt(x - c1)) + c2);
+            }
+            else 
+            {
             return ((c0 * pow(x, 3)) + (c1 * pow(x, 2)) + (c2 * x) + c3);
+            }
         };
 
         std::vector<cv::Point> points;
 
         if ((myTrajectory[i].Function.PointTwo.X - myTrajectory[i].Function.PointOne.X) < 0)
         {
-            for (double g = myTrajectory[i].Function.PointOne.X; g >= myTrajectory[i].Function.PointTwo.X; g -= .005)
+            for (double g = myTrajectory[i].Function.PointOne.X; g >= myTrajectory[i].Function.PointTwo.X; g -= .01)
             {
-                points.push_back(cv::Point(g * xRatio, cubicFunction(g) * yRatio));
+                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
             }
         }
 
         else
         {
-            for (double g = myTrajectory[i].Function.PointOne.X; g <= myTrajectory[i].Function.PointTwo.X; g += .005)
+            for (double g = myTrajectory[i].Function.PointOne.X; g <= myTrajectory[i].Function.PointTwo.X; g += .01)
             {
-                points.push_back(cv::Point(g * xRatio, cubicFunction(g) * yRatio));
+                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
             }
         }
 
@@ -141,7 +154,6 @@ sf::Image scrollBarImageCreation()
 void waypointTable(std::vector<std::string> x, std::vector<std::string> y, std::vector<std::string> angle, RoundedRectangle scrollbar, RoundedRectangle textBox, sf::RenderWindow &window)
 {
     std::vector<sf::VertexArray> lines;
-
     sf::Event event;
 
     sf::VertexArray xyDiv(sf::Lines, 2);
