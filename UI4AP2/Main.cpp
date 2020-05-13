@@ -10,11 +10,71 @@
 //mainCRTStartup, CONSOLE
 
 #define within(x, y) getGlobalBounds().contains(x, y)
+void readFromTrajectory(cv::Mat &inputMatrice, AP::Trajectory theTrajectory, cv::Scalar color)
+{
+    double xRatio, yRatio, xLength = 16.5, yLength = 8.23;
+    xRatio = inputMatrice.cols / xLength; yRatio = inputMatrice.rows / yLength;
+    for (std::size_t i = 0; i < theTrajectory.size(); i++)
+    {
+        double c0 = theTrajectory[i].Function.Ax, c1 = theTrajectory[i].Function.Bx, c2 = theTrajectory[i].Function.Cx, c3 = theTrajectory[i].Function.Dx;
+        int flag = theTrajectory[i].Function.flag;
+
+        std::function<double(double)> Function = [c0, c1, c2, c3, flag](double x)
+        {
+            if (flag == AP::Waypoint::Types::Quadratic)
+            {
+                return ((c0 * pow(x - c1, 2)) + c2);
+            }
+            else if (flag == AP::Waypoint::Types::SquareRoot)
+            {
+                return ((c0 * sqrt(x - c1)) + c2);
+            }
+            else if (flag == AP::Waypoint::Types::Hermite)
+            {
+                return ((c0 * pow(x, 3)) + (c1 * pow(x, 2)) + (c2 * x) + c3);
+            }
+        };
+
+        std::vector<cv::Point> points;
+
+        if ((theTrajectory[i].Function.PointTwo.X - theTrajectory[i].Function.PointOne.X) < 0)
+        {
+            for (double g = theTrajectory[i].Function.PointOne.X; g >= theTrajectory[i].Function.PointTwo.X; g -= .0005)
+            {
+                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
+            }
+        }
+
+        else
+        {
+            for (double g = theTrajectory[i].Function.PointOne.X; g <= theTrajectory[i].Function.PointTwo.X; g += .0005)
+            {
+                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
+            }
+        }
+
+        //std::vector<cv::Point> approxPoints;
+
+        //cv::approxPolyDP(points, approxPoints, cv::arcLength(points, false) * .001, false);
+
+        cv::polylines(inputMatrice, points, false, color, 2, cv::LINE_AA, 0); //255, 255, 0, 1
+    }
+}
 
 sf::Image readCVGraph(std::string fileadress, sf::Text &timeNumber)
 {
-    cv::Mat graph = cv::Mat::zeros(cv::Size(800, 400), CV_8UC4);
-    cv::Mat lines = cv::Mat::zeros(cv::Size(800, 400), CV_8UC4);
+    cv::Mat graph = cv::Mat::zeros(cv::Size(800, 400), CV_8UC3);
+
+    graph = cv::imread(fileadress, cv::IMREAD_COLOR);
+    cv::resize(graph, graph, cv::Size(800, 400));
+    cv::flip(graph, graph, 0);
+
+    //cv::Mat temp[3];
+    //cv::split(graph, temp);
+    //temp[0] *= .9;
+    //temp[1] *= .9;
+    //temp[2] *= .9;
+    //cv::merge(temp, 3, graph);
 
     AP::Path myPath = { AP::Waypoint{3.75, 5.5, 180}, AP::Waypoint{3, 5.5, 180}, /*AP::Waypoint{6, 4, 80}, AP::Waypoint{6, 4, 100},*/ AP::Waypoint{6.5, 7.1, 0}, AP::Waypoint{8, 7.1, 0} };
     AP::Trajectory myTrajectory = AP::TrajectoryGeneration(myPath, 2);
@@ -24,90 +84,27 @@ sf::Image readCVGraph(std::string fileadress, sf::Text &timeNumber)
 
     sf::Image buffer;
 
+    //AP::TankConfig myConfig = AP::GenerateTankConfig(myTrajectory, 0.5, 2.0);
+
+    readFromTrajectory(graph, myTrajectory, cv::Scalar(255, 0, 0));
+    //readFromTrajectory(graph, myConfig.LeftTrajectory, cv::Scalar(0, 255, 0));
+    //readFromTrajectory(graph, myConfig.RightTrajectory, cv::Scalar(0, 0, 255));
+
     for (std::size_t i = 0; i <= 16; i++)
     {
-        cv::line(lines, cv::Point(i * xRatio, lines.rows), cv::Point(i * xRatio, 0), cv::Scalar(1, 1, 1, 255), 1, 8);
+        cv::line(graph, cv::Point(i * xRatio, graph.rows), cv::Point(i * xRatio, 0), cv::Scalar(0, 0, 0), 1, 8); //1,1,1,255
     }
 
     for (std::size_t i = 0; i <= 8; i++)
     {
-        cv::line(lines, cv::Point(0, i * yRatio), cv::Point(lines.cols, i * yRatio), cv::Scalar(1, 1, 1, 255), 1, 8);
+        cv::line(graph, cv::Point(0, i * yRatio), cv::Point(graph.cols, i * yRatio), cv::Scalar(0, 0, 0), 1, 8);
     }
-
-    for (std::size_t i = 0; i < myTrajectory.size(); i++)
-    {
-        double c0 = myTrajectory[i].Function.Ax, c1 = myTrajectory[i].Function.Bx, c2 = myTrajectory[i].Function.Cx, c3 = myTrajectory[i].Function.Dx;
-
-        int quad = 2001, sqrt = 2002;
-
-        std::function<double(double)> Function = [c0, c1, c2, c3, quad, sqrt](double x)
-        {
-            if (c3 == quad)
-            {
-                return ((c0 * pow(x - c1, 2)) + c2);
-            }
-            else if (c3 == sqrt)
-            {
-                return ((c0 * std::sqrt(x - c1)) + c2);
-            }
-            else 
-            {
-            return ((c0 * pow(x, 3)) + (c1 * pow(x, 2)) + (c2 * x) + c3);
-            }
-        };
-
-        std::vector<cv::Point> points;
-
-        if ((myTrajectory[i].Function.PointTwo.X - myTrajectory[i].Function.PointOne.X) < 0)
-        {
-            for (double g = myTrajectory[i].Function.PointOne.X; g >= myTrajectory[i].Function.PointTwo.X; g -= .01)
-            {
-                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
-            }
-        }
-
-        else
-        {
-            for (double g = myTrajectory[i].Function.PointOne.X; g <= myTrajectory[i].Function.PointTwo.X; g += .01)
-            {
-                points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
-            }
-        }
-
-        cv::polylines(graph, points, false, cv::Scalar(255, 255, 0, 1), 3, 8, 0);
-    }
-
-    cv::Mat rest(graph.rows, graph.cols, CV_8UC3);
+    
     cv::flip(graph, graph, 0);
-    cv::flip(lines, lines, 0);
 
-    if (fileadress.empty())
-    {
-        rest.setTo(cv::Scalar(240, 240, 240, 255));
-        rest.setTo(cv::Scalar(0, 0, 0, 254), graph);
-        rest.setTo(cv::Scalar(0, 0, 0, 255), lines);
-    }
+    cv::cvtColor(graph, graph, cv::COLOR_RGB2RGBA);
 
-    else
-    {
-        rest = cv::imread(fileadress, cv::IMREAD_UNCHANGED);
-        if (!rest.empty())
-        {
-            cv::resize(rest, rest, cv::Size(800, 400));
-
-            cv::Mat temp[4];
-            cv::split(rest, temp);
-            cv::merge(temp, 4, rest);
-            temp[3] *= .85;
-            cv::merge(temp, 4, rest);
-
-            rest.setTo(cv::Scalar(255, 255, 255, 255), graph);
-            rest.setTo(cv::Scalar(0, 0, 0, 255), lines);
-        }
-    }
-
-    cv::cvtColor(rest, rest, cv::COLOR_BGR2RGBA);
-    buffer.create(rest.cols, rest.rows, rest.ptr());
+    buffer.create(graph.cols, graph.rows, graph.ptr());
 
     double time = 0;
     for (size_t i = 0; i < myTrajectory.size(); i++)
@@ -237,7 +234,10 @@ public:
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1000, 500), "AutoPilot GUI", sf::Style::Close | sf::Style::Titlebar);
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+
+    sf::RenderWindow window(sf::VideoMode(1000, 500), "AutoPilot GUI", sf::Style::Close | sf::Style::Titlebar, settings);
 
     sf::RectangleShape background(sf::Vector2f((float)window.getSize().x, (float)window.getSize().y));
     background.setFillColor(sf::Color(240, 240, 240));
@@ -280,12 +280,11 @@ int main()
     scrollBarText.loadFromImage(scrollBarImage);
     scrollBarBox.setTexture(&scrollBarText);
 
-
     std::vector<std::string> xP, yP, angles;
 
     sf::Cursor cursor;
 
-    window.setFramerateLimit(30);
+    window.setFramerateLimit(15);
 
     while (window.isOpen())
     {

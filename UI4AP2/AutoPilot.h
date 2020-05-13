@@ -19,11 +19,17 @@ namespace AP
 	struct Waypoint
 	{
 		double X, Y, Angle;
-		enum types
+		enum Types
 		{
-			Quadratic, SquareRoot, Hermite, Exponential
+			None = 0,
+			Quadratic = 1 << 0,
+			SquareRoot = 1 << 1,
+			Hermite = 1 << 2,
+			Exponential = 1 << 3,
+			VerticallyFlipped = 1 << 4,
+			HorizontallyFlipped = 1 << 5,
 		};
-		types typeOfFunction;
+		int typeOfFunction;
 		Waypoint(double x, double y, double angleInDegrees);
 		Waypoint();
 	};
@@ -36,6 +42,7 @@ namespace AP
 	{
 		Waypoint PointOne, PointTwo;
 		double Ax, Bx, Cx, Dx;
+		int flag;
 	};
 
 	typedef std::vector<SplineFunction> Spline;
@@ -68,7 +75,7 @@ namespace AP
 
 	Segment GenerateSegment(SplineFunction function, double Jerk);
 
-	Trajectory GenerateTrajectory(Spline Spline, double Jerk);
+	void interpolater(Waypoint &p1, Waypoint &p2, bool R2L);
 
 	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk);
 
@@ -78,7 +85,9 @@ namespace AP
 		Trajectory LeftTrajectory, RightTrajectory;
 	};
 
-	TankConfig GenerateTankConfig(Trajectory OriginalTrajectory, double WidthBetweenWheels, double Jerk);
+	TankConfig GenerateTankConfig(Trajectory theTraj, double WidthBetweenWheels, double Jerk);
+
+	Path getPoints(Trajectory theTraj);
 
 	template<typename Encoder> void AutoTankDrive(TankConfig& TheTankConfig, Encoder& LeftEncoder, Encoder& RightEncoder, double TimeStep, double WidthBetweenWheels, double Jerk, int Ticks, double CircumferenceOfWheel);
 }
