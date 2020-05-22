@@ -39,7 +39,7 @@ void readFromTrajectory(cv::Mat &inputMatrice, AP::Trajectory theTrajectory, cv:
 
         if ((theTrajectory[i].Function.PointTwo.X - theTrajectory[i].Function.PointOne.X) < 0)
         {
-            for (double g = theTrajectory[i].Function.PointOne.X; g >= theTrajectory[i].Function.PointTwo.X; g -= .0005)
+            for (double g = theTrajectory[i].Function.PointOne.X; g >= theTrajectory[i].Function.PointTwo.X; g -= .005)
             {
                 points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
             }
@@ -47,7 +47,7 @@ void readFromTrajectory(cv::Mat &inputMatrice, AP::Trajectory theTrajectory, cv:
 
         else
         {
-            for (double g = theTrajectory[i].Function.PointOne.X; g <= theTrajectory[i].Function.PointTwo.X; g += .0005)
+            for (double g = theTrajectory[i].Function.PointOne.X; g <= theTrajectory[i].Function.PointTwo.X; g += .005)
             {
                 points.push_back(cv::Point(g * xRatio, Function(g) * yRatio));
             }
@@ -57,7 +57,7 @@ void readFromTrajectory(cv::Mat &inputMatrice, AP::Trajectory theTrajectory, cv:
 
         //cv::approxPolyDP(points, approxPoints, cv::arcLength(points, false) * .001, false);
 
-        cv::polylines(inputMatrice, points, false, color, 2, cv::LINE_AA, 0); //255, 255, 0, 1
+        cv::polylines(inputMatrice, points, false, color, 2, 8, 0); //255, 255, 0, 1
     }
 }
 
@@ -84,11 +84,11 @@ sf::Image readCVGraph(std::string fileadress, sf::Text &timeNumber)
 
     sf::Image buffer;
 
-    //AP::TankConfig myConfig = AP::GenerateTankConfig(myTrajectory, 0.5, 2.0);
+    AP::TankConfig myConfig = AP::GenerateTankConfig(myTrajectory, 0.5, 2.0);
 
     readFromTrajectory(graph, myTrajectory, cv::Scalar(255, 0, 0));
-    //readFromTrajectory(graph, myConfig.LeftTrajectory, cv::Scalar(0, 255, 0));
-    //readFromTrajectory(graph, myConfig.RightTrajectory, cv::Scalar(0, 0, 255));
+    readFromTrajectory(graph, myConfig.LeftTrajectory, cv::Scalar(0, 255, 0));
+    readFromTrajectory(graph, myConfig.RightTrajectory, cv::Scalar(0, 0, 255));
 
     for (std::size_t i = 0; i <= 16; i++)
     {

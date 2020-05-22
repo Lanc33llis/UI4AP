@@ -503,6 +503,9 @@ namespace AP
 	{
 		Spline ReturnSpline;
 		int NumberOfFunctions = ThePath.size() - 1;
+		size_t extraPoints = 10;
+		int ptsPerSpline = extraPoints / NumberOfFunctions;
+
 		for (int i = 0; i < NumberOfFunctions; i++)
 		{
 			if (ThePath[i].typeOfFunction == Waypoint::Types::Quadratic)
@@ -520,6 +523,33 @@ namespace AP
 				SplineFunction Temp = HermiteFinder(ThePath[i], ThePath[i + 1]);
 				ReturnSpline.push_back(Temp);
 			}
+		}
+
+		for (size_t i = 0; i < ReturnSpline.size(); i++)
+		{
+		double c0 = ReturnSpline[i].Ax, c1 = ReturnSpline[i].Bx, c2 = ReturnSpline[i].Cx, c3 = ReturnSpline[i].Dx;
+		int flag = ReturnSpline[i].flag;
+		std::function<double(double)> Function = [c0, c1, c2, c3, flag](double x)
+		{
+			if (flag == AP::Waypoint::Types::Quadratic)
+			{
+				return ((c0 * pow(x - c1, 2)) + c2);
+			}
+			else if (flag == AP::Waypoint::Types::SquareRoot)
+			{
+				return ((c0 * sqrt(x - c1)) + c2);
+			}
+			else if (flag == AP::Waypoint::Types::Hermite)
+			{
+				return ((c0 * pow(x, 3)) + (c1 * pow(x, 2)) + (c2 * x) + c3);
+			}
+		};
+
+		for (size_t t = 0; t <= ptsPerSpline; t++)
+		{
+			ThePath.
+		}
+
 		}
 		return ReturnSpline;
 	}
@@ -629,39 +659,42 @@ namespace AP
 		return myPath;
 	}
 
-	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk)
+	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk, bool interpolationOveride)
 	{
 		Trajectory ReturnTrajectory;
 		Path modifiedGroupOfWaypoints(GroupOfWaypoints);
-		for (size_t t = 0; t < GroupOfWaypoints.size() - 1; t++)
+		if (!interpolationOveride)
 		{
-			Waypoint WP1 = GroupOfWaypoints[t], WP2 = GroupOfWaypoints[t + 1];
-			std::vector<Waypoint>::const_iterator iterator;
-			if ((WP1.Angle < 90 || WP1.Angle > 270) && (WP2.Angle > 90 && WP2.Angle < 270))
+			for (size_t t = 0; t < GroupOfWaypoints.size() - 1; t++)
 			{
-				Waypoint NP1(WP1.X * 1.1, WP1.Y * 1.1, 80); NP1.typeOfFunction = Waypoint::Types::Hermite; //quad
-				Waypoint NP2(WP1.X * 1.1, WP1.Y * 1.1, 100); NP2.typeOfFunction = Waypoint::Types::Hermite; //sqrt
-				iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
-				int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
-				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);
-				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i + 1, NP2);
-				NP1.Waypoint::~Waypoint();
-				NP2.Waypoint::~Waypoint();
+				Waypoint WP1 = GroupOfWaypoints[t], WP2 = GroupOfWaypoints[t + 1];
+				std::vector<Waypoint>::const_iterator iterator;
+				if ((WP1.Angle < 90 || WP1.Angle > 270) && (WP2.Angle > 90 && WP2.Angle < 270))
+				{
+					Waypoint NP1(WP1.X * 1.1, WP1.Y * 1.1, 80); NP1.typeOfFunction = Waypoint::Types::Hermite; //quad
+					Waypoint NP2(WP1.X * 1.1, WP1.Y * 1.1, 100); NP2.typeOfFunction = Waypoint::Types::Hermite; //sqrt
+					iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
+					int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
+					modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);
+					modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i + 1, NP2);
+					NP1.Waypoint::~Waypoint();
+					NP2.Waypoint::~Waypoint();
+				}
+				else if ((WP1.Angle > 90 && WP1.Angle < 270) && (WP2.Angle < 90 || WP2.Angle > 270))
+				{
+					auto a1 = (100 + 60) / 2;
+					Waypoint NP1(WP1.X * .9, WP1.Y * 1.1, 100); NP1.typeOfFunction = Waypoint::Types::Hermite;
+					Waypoint NP2(WP1.X * .9, WP1.Y * 1.1, 60); NP2.typeOfFunction = Waypoint::Types::Hermite;
+					iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
+					int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
+					modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);
+					modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i + 1, NP2);
+					NP1.Waypoint::~Waypoint();
+					NP2.Waypoint::~Waypoint();
+				}
+				WP1.Waypoint::~Waypoint();
+				WP2.Waypoint::~Waypoint();
 			}
-			else if ((WP1.Angle > 90 && WP1.Angle < 270) && (WP2.Angle < 90 || WP2.Angle > 270))
-			{
-				auto a1 = (100 + 60) / 2;
-				Waypoint NP1(WP1.X * .9, WP1.Y * 1.1, 100); NP1.typeOfFunction = Waypoint::Types::Hermite;
-				Waypoint NP2(WP1.X * .9, WP1.Y * 1.1, 60); NP2.typeOfFunction = Waypoint::Types::Hermite;
-				iterator = find(modifiedGroupOfWaypoints.begin(), modifiedGroupOfWaypoints.end(), WP1);
-				int i = (int)(iterator - modifiedGroupOfWaypoints.begin()) + 1;
-				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i, NP1);
-				modifiedGroupOfWaypoints.emplace(modifiedGroupOfWaypoints.begin() + i + 1, NP2);
-				NP1.Waypoint::~Waypoint();
-				NP2.Waypoint::~Waypoint();
-			}
-			WP1.Waypoint::~Waypoint();
-			WP2.Waypoint::~Waypoint();
 		}
 		Spline mySpline = GenerateSpline(modifiedGroupOfWaypoints);
 		for (size_t i = 0; i < mySpline.size(); i++)
@@ -695,6 +728,39 @@ namespace AP
 			}
 		}
 		TheTankConfig.Time += TimeStep;
+	}
+
+	TankConfig GenerateTankConfig(Trajectory theTraj, double WidthBetweenWheels, double Jerk)
+	{
+		TankConfig myConfig;
+		auto controlPath = getPoints(theTraj);
+		Path leftWheelPath, rightWheelPath;
+
+		auto radius = WidthBetweenWheels / 2;
+
+		for (size_t i = 0; i < controlPath.size(); i++)
+		{
+			double x, y, a;
+			a = controlPath[i].Angle + 90;
+			x = radius * cos(a * (PI / 180)) + controlPath[i].X;
+			y = radius * sin(a * (PI / 180)) + controlPath[i].Y;
+			Waypoint l(x, y, a - 90);
+			l.typeOfFunction = controlPath[i].typeOfFunction;
+
+			a = controlPath[i].Angle - 90;
+			x = radius * cos(a * (PI / 180)) + controlPath[i].X;
+			y = radius * sin(a * (PI / 180)) + controlPath[i].Y;
+			Waypoint r(x, y, a + 90);
+			r.typeOfFunction = controlPath[i].typeOfFunction;
+
+			leftWheelPath.push_back(l);
+			rightWheelPath.push_back(r);
+		}
+
+		myConfig.LeftTrajectory = TrajectoryGeneration(leftWheelPath, Jerk, true);
+		myConfig.RightTrajectory = TrajectoryGeneration(rightWheelPath, Jerk, true);
+
+		return myConfig;
 	}
 
 //	TankConfig GenerateTankConfig(Trajectory theTraj, double WidthBetweenWheels, double Jerk)

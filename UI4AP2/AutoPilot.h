@@ -77,7 +77,7 @@ namespace AP
 
 	void interpolater(Waypoint &p1, Waypoint &p2, bool R2L);
 
-	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk);
+	Trajectory TrajectoryGeneration(AP::Path GroupOfWaypoints, double Jerk, bool interpolationOveride = false);
 
 	struct TankConfig
 	{
